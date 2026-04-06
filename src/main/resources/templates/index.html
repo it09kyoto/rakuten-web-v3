@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrendStudio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;1,300&family=DM+Sans:wght@200;300;400&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg:     #07080f;
+            --glass:  rgba(255,255,255,0.05);
+            --glassh: rgba(255,255,255,0.09);
+            --border: rgba(255,255,255,0.09);
+            --bordera:rgba(255,255,255,0.20);
+            --text:   #e2e6f8;
+            --muted:  rgba(200,210,240,0.40);
+            --spring: cubic-bezier(0.34,1.22,0.64,1);
+
+            --c0: #7b8fff;
+            --c1: #a78bfa;
+            --c2: #60b8ff;
+            --c3: #c084fc;
+        }
+
+        html, body { height: 100%; }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 300;
+            background: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* ── Aurora ── */
+        #aurora {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* Dot grid */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            z-index: 1;
+            pointer-events: none;
+            background-image: radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px);
+            background-size: 38px 38px;
+        }
+
+        /* ── Header ── */
+        header {
+            position: fixed;
+            inset: 0 0 auto;
+            z-index: 50;
+            height: 54px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 40px;
+            background: rgba(7,8,15,0.65);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .logo {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1rem;
+            font-weight: 300;
+            letter-spacing: 0.32em;
+            text-transform: uppercase;
+            color: var(--text);
+            text-decoration: none;
+        }
+
+        .lang-btn {
+            font-size: 0.6rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--muted);
+            border: 1px solid var(--border);
+            padding: 5px 12px;
+            border-radius: 100px;
+            cursor: pointer;
+            background: none;
+            font-family: inherit;
+            transition: border-color 0.2s, color 0.2s;
+        }
+        .lang-btn:hover { border-color: var(--bordera); color: var(--text); }
+
+        /* ── Main ── */
+        main {
+            position: relative;
+            z-index: 10;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding-top: 54px;
+        }
+
+        /* ── Intro ── */
+        .intro {
+            text-align: center;
+            padding: 44px 40px 32px;
+            opacity: 0;
+            animation: fadeUp 0.9s ease 0.15s forwards;
+        }
+
+        .intro-eyebrow {
+            font-size: 0.58rem;
+            letter-spacing: 0.32em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 14px;
+        }
+
+        .intro-title {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: clamp(2.6rem, 5.5vw, 4rem);
+            font-weight: 300;
+            line-height: 1.06;
+        }
+        .intro-title em {
+            font-style: italic;
+            background: linear-gradient(110deg, var(--c0), var(--c3));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* ── Carousel outer ── */
+        .carousel-outer {
+            width: 100%;
+            position: relative;
+            opacity: 0;
+            animation: fadeUp 0.9s ease 0.32s forwards;
+        }
+        .carousel-outer::before,
+        .carousel-outer::after {
+            content: '';
+            position: absolute;
+            top: 0; bottom: 0;
+            width: 110px;
+            z-index: 2;
+            pointer-events: none;
+        }
+        .carousel-outer::before { left: 0;  background: linear-gradient(to right, var(--bg), transparent); }
+        .carousel-outer::after  { right: 0; background: linear-gradient(to left,  var(--bg), transparent); }
+
+        /* ── Track ── */
+        .carousel {
+            display: flex;
+            gap: 20px;
+            overflow-x: scroll;
+            scroll-snap-type: x mandatory;
+            -webkit-overflow-scrolling: touch;
+            scroll-behavior: smooth;
+            padding: 40px calc(50vw - 145px);
+            scrollbar-width: none;
+            cursor: grab;
+        }
+        .carousel::-webkit-scrollbar { display: none; }
+        .carousel.grabbing { cursor: grabbing; }
+
+        /* ── Card ── */
+        .cat-card {
+            flex: 0 0 268px;
+            height: 340px;
+            scroll-snap-align: center;
+            scroll-snap-stop: always;
+            border-radius: 22px;
+            border: 1px solid var(--border);
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            text-decoration: none;
+            color: var(--text);
+            position: relative;
+            overflow: hidden;
+
+            transform: scale(0.84);
+            opacity: 0.28;
+            transition:
+                transform   0.55s var(--spring),
+                opacity     0.4s ease,
+                border-color 0.4s,
+                background   0.4s;
+        }
+
+        .cat-card.active {
+            transform: scale(1);
+            opacity: 1;
+            background: var(--glassh);
+            border-color: var(--bordera);
+        }
+
+        .cat-card.active[data-a="0"] { box-shadow: 0 0 50px -8px rgba(123,143,255,0.30); }
+        .cat-card.active[data-a="1"] { box-shadow: 0 0 50px -8px rgba(167,139,250,0.30); }
+        .cat-card.active[data-a="2"] { box-shadow: 0 0 50px -8px rgba(96, 184,255,0.30); }
+        .cat-card.active[data-a="3"] { box-shadow: 0 0 50px -8px rgba(192,132,252,0.30); }
+
+        /* ── Icon ── */
+        .card-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(255,255,255,0.12);
+            transition: transform 0.5s var(--spring);
+        }
+        .cat-card[data-a="0"] .card-icon { background: rgba(123,143,255,0.14); }
+        .cat-card[data-a="1"] .card-icon { background: rgba(167,139,250,0.14); }
+        .cat-card[data-a="2"] .card-icon { background: rgba(96,184,255,0.14); }
+        .cat-card[data-a="3"] .card-icon { background: rgba(192,132,252,0.14); }
+
+        .cat-card.active .card-icon { transform: scale(1.08) translateY(-3px); }
+
+        .card-icon svg { width: 34px; height: 34px; }
+        .cat-card[data-a="0"] .card-icon svg { stroke: var(--c0); }
+        .cat-card[data-a="1"] .card-icon svg { stroke: var(--c1); }
+        .cat-card[data-a="2"] .card-icon svg { stroke: var(--c2); }
+        .cat-card[data-a="3"] .card-icon svg { stroke: var(--c3); }
+
+        /* ── Label ── */
+        .card-label {
+            font-size: 1.05rem;
+            font-weight: 400;
+            letter-spacing: 0.04em;
+            color: var(--text);
+        }
+
+        /* ── Number tag ── */
+        .card-num {
+            position: absolute;
+            top: 20px;
+            left: 24px;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 0.68rem;
+            letter-spacing: 0.18em;
+            color: var(--muted);
+        }
+
+        /* ── Arrow ── */
+        .card-arrow {
+            position: absolute;
+            bottom: 22px;
+            right: 24px;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 1px solid rgba(255,255,255,0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transform: scale(0.7);
+            transition: opacity 0.3s ease 0.1s, transform 0.35s var(--spring) 0.1s;
+        }
+        .cat-card.active .card-arrow { opacity: 1; transform: scale(1); }
+        .cat-card[data-a="0"] .card-arrow { border-color: rgba(123,143,255,0.4); }
+        .cat-card[data-a="1"] .card-arrow { border-color: rgba(167,139,250,0.4); }
+        .cat-card[data-a="2"] .card-arrow { border-color: rgba(96,184,255,0.4); }
+        .cat-card[data-a="3"] .card-arrow { border-color: rgba(192,132,252,0.4); }
+        .card-arrow svg { width: 14px; height: 14px; }
+        .cat-card[data-a="0"] .card-arrow svg { stroke: var(--c0); }
+        .cat-card[data-a="1"] .card-arrow svg { stroke: var(--c1); }
+        .cat-card[data-a="2"] .card-arrow svg { stroke: var(--c2); }
+        .cat-card[data-a="3"] .card-arrow svg { stroke: var(--c3); }
+
+        /* ── Dots ── */
+        .dots {
+            display: flex;
+            gap: 7px;
+            justify-content: center;
+            margin: 26px 0 10px;
+            opacity: 0;
+            animation: fadeUp 0.7s ease 0.55s forwards;
+        }
+        .dot {
+            height: 3px;
+            width: 3px;
+            border-radius: 2px;
+            background: rgba(255,255,255,0.18);
+            transition: width 0.4s var(--spring), background 0.3s;
+            cursor: pointer;
+        }
+        .dot.active           { width: 20px; }
+        .dot.active[data-a="0"] { background: var(--c0); }
+        .dot.active[data-a="1"] { background: var(--c1); }
+        .dot.active[data-a="2"] { background: var(--c2); }
+        .dot.active[data-a="3"] { background: var(--c3); }
+
+        .swipe-hint {
+            font-size: 0.56rem;
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+            color: var(--muted);
+            text-align: center;
+            margin-bottom: 32px;
+            opacity: 0;
+            animation: fadeUp 0.7s ease 0.7s forwards;
+        }
+
+        /* ═══════════════════════════════════════
+           ── Footer ──
+           ═══════════════════════════════════════ */
+        footer {
+            position: relative;
+            z-index: 10;
+            border-top: 1px solid var(--border);
+            background: rgba(7,8,15,0.80);
+            backdrop-filter: blur(24px);
+        }
+
+        /* Top contact band */
+        .footer-contact {
+            display: flex;
+            justify-content: center;
+            padding: 40px 60px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .footer-org {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .footer-org-name {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.05rem;
+            font-weight: 300;
+            letter-spacing: 0.18em;
+            color: var(--text);
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Accent dot before org name */
+        .footer-org-name::before {
+            content: '';
+            display: inline-block;
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .footer-org .footer-org-name::before { background: var(--c2); box-shadow: 0 0 8px var(--c2); }
+
+        .footer-info-list {
+            display: flex;
+            flex-direction: column;
+            gap: 9px;
+            padding-left: 15px;
+        }
+
+        .footer-info-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            font-size: 0.72rem;
+            letter-spacing: 0.04em;
+            color: var(--muted);
+            line-height: 1.6;
+        }
+
+        .footer-info-item svg {
+            width: 13px;
+            height: 13px;
+            flex-shrink: 0;
+            margin-top: 2px;
+            stroke: rgba(200,210,240,0.30);
+        }
+
+        .footer-info-item a {
+            color: inherit;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        .footer-info-item a:hover { color: var(--text); }
+
+        /* Bottom bar */
+        .footer-bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 60px;
+        }
+
+        .footer-text {
+            font-size: 0.56rem;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            color: rgba(200,210,240,0.22);
+        }
+
+        .footer-badge {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 0.56rem;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            color: rgba(200,210,240,0.22);
+        }
+
+        .footer-badge-dot {
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: var(--c0);
+            opacity: 0.5;
+        }
+
+        /* ── Clock widget (fixed top-right) ── */
+        #clock-widget {
+            position: fixed;
+            top: 68px;
+            right: 20px;
+            z-index: 48;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 2px;
+            background: rgba(7,8,15,0.72);
+            backdrop-filter: blur(22px);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 14px 20px 14px 22px;
+            opacity: 0;
+            animation: fadeUp 0.7s ease 0.85s forwards;
+            pointer-events: none;
+        }
+
+        .clock-date {
+            font-size: 0.56rem;
+            letter-spacing: 0.20em;
+            text-transform: uppercase;
+            color: var(--muted);
+            white-space: nowrap;
+        }
+
+        .clock-time {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 3.2rem;
+            font-weight: 300;
+            letter-spacing: 0.04em;
+            line-height: 1;
+            color: var(--text);
+            white-space: nowrap;
+        }
+
+        .clock-time .clock-sec {
+            font-size: 1.4rem;
+            vertical-align: baseline;
+            color: var(--muted);
+            margin-left: 2px;
+        }
+
+        .clock-tz {
+            font-size: 0.46rem;
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+            color: rgba(200,210,240,0.22);
+            margin-top: 1px;
+        }
+
+        /* left accent bar */
+        #clock-widget::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 18%; bottom: 18%;
+            width: 2px;
+            border-radius: 2px;
+            background: linear-gradient(to bottom, var(--c0), var(--c2));
+            opacity: 0.8;
+        }
+
+        @keyframes fadeUp {
+            from { opacity:0; transform:translateY(14px); }
+            to   { opacity:1; transform:translateY(0); }
+        }
+
+        @media (max-width: 700px) {
+            header { padding: 0 20px; }
+            .intro  { padding: 36px 20px 24px; }
+            .cat-card { flex: 0 0 236px; height: 300px; }
+            .carousel { padding: 36px calc(50vw - 118px); }
+
+            .footer-contact {
+                grid-template-columns: 1fr;
+                padding: 32px 28px;
+                gap: 32px;
+            }
+            .footer-divider { display: none; }
+            .footer-bottom  { padding: 14px 28px; flex-direction: column; gap: 6px; align-items: flex-start; }
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="aurora"></canvas>
+
+<header>
+    <a href="/" class="logo">TrendStudio</a>
+    <button class="lang-btn" id="langBtn">JP / CN / EN</button>
+</header>
+
+<!-- ── Clock widget ── -->
+<div id="clock-widget">
+    <span class="clock-date" id="clock-date">—</span>
+    <span class="clock-time" id="clock-hm">--:--<span class="clock-sec" id="clock-sec">--</span></span>
+    <span class="clock-tz">JST · UTC+9</span>
+</div>
+    <div class="intro">
+        <p class="intro-eyebrow">Rakuten · Real-time Ranking</p>
+        <h1 class="intro-title">Trend<em> Studio</em></h1>
+    </div>
+
+    <div class="carousel-outer">
+        <div class="carousel" id="carousel">
+
+            <!-- 综合 -->
+            <a th:href="@{/analysis(genre='0', lang=${lang})}" class="cat-card" data-a="0">
+                <span class="card-num">01</span>
+                <span class="card-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="9"/>
+                        <path d="M12 3a9 9 0 0 1 6 15M6.5 5.5l11 13"/>
+                        <path d="M3 12h18"/>
+                    </svg>
+                </span>
+                <span class="card-label">Overall</span>
+                <span class="card-arrow">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M5 12h14M13 6l6 6-6 6"/>
+                    </svg>
+                </span>
+            </a>
+
+            <!-- 家电 -->
+            <a th:href="@{/analysis(genre='551167', lang=${lang})}" class="cat-card" data-a="1">
+                <span class="card-num">02</span>
+                <span class="card-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="3" width="20" height="14" rx="2"/>
+                        <path d="M8 21h8M12 17v4"/>
+                        <circle cx="12" cy="10" r="3"/>
+                    </svg>
+                </span>
+                <span class="card-label">Electronics</span>
+                <span class="card-arrow">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M5 12h14M13 6l6 6-6 6"/>
+                    </svg>
+                </span>
+            </a>
+
+            <!-- 服装 -->
+            <a th:href="@{/analysis(genre='100371', lang=${lang})}" class="cat-card" data-a="2">
+                <span class="card-num">03</span>
+                <span class="card-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.57a1 1 0 0 0 .99.84H6v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.57a2 2 0 0 0-1.34-2.23z"/>
+                    </svg>
+                </span>
+                <span class="card-label">Fashion</span>
+                <span class="card-arrow">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M5 12h14M13 6l6 6-6 6"/>
+                    </svg>
+                </span>
+            </a>
+
+            <!-- 美妆 -->
+            <a th:href="@{/analysis(genre='216129', lang=${lang})}" class="cat-card" data-a="3">
+                <span class="card-num">04</span>
+                <span class="card-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 22c4.97 0 9-2.69 9-6 0-1.77-1.08-3.37-2.83-4.56"/>
+                        <path d="M15.59 12.56C16.5 11.7 17 10.63 17 9.5 17 6.46 14.76 4 12 4S7 6.46 7 9.5c0 1.13.5 2.2 1.41 3.06"/>
+                        <path d="M5 16c0 3.31 3.13 6 7 6"/>
+                        <path d="M8.83 16.17C7.12 15 6 13.42 6 11.7 6 8.65 8.69 6.17 12 6"/>
+                    </svg>
+                </span>
+                <span class="card-label">Beauty</span>
+                <span class="card-arrow">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M5 12h14M13 6l6 6-6 6"/>
+                    </svg>
+                </span>
+            </a>
+
+        </div>
+    </div>
+
+    <div class="dots" id="dots">
+        <div class="dot active" data-a="0"></div>
+        <div class="dot"        data-a="1"></div>
+        <div class="dot"        data-a="2"></div>
+        <div class="dot"        data-a="3"></div>
+    </div>
+    <p class="swipe-hint">swipe to explore</p>
+</main>
+
+<!-- ══════════════════════════════════════════════
+     Footer — ポリテクセンター京都
+     ══════════════════════════════════════════════ -->
+<style>
+    /* 新的平铺页脚样式 */
+    footer {
+        position: relative;
+        z-index: 10;
+        border-top: 1px solid var(--border);
+        background: rgba(7,8,15,0.90);
+        backdrop-filter: blur(24px);
+        padding: 30px 40px; /* 增加上下间距 */
+    }
+
+    .footer-row {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-wrap: wrap; /* 手机端自动换行 */
+        gap: 30px; /* 各项之间的间距 */
+        max-width: 1200px;
+        margin: 0 auto 20px auto;
+    }
+
+    .footer-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.7rem;
+        letter-spacing: 0.05em;
+        color: var(--muted);
+        white-space: nowrap; /* 电脑端不换行 */
+    }
+
+    .footer-item svg {
+        width: 14px;
+        height: 14px;
+        stroke: var(--c0); /* 使用蓝色系图标 */
+        opacity: 0.8;
+    }
+
+    .footer-item a {
+        color: inherit;
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .footer-item a:hover {
+        color: var(--text);
+    }
+
+    /* 底部版权条 */
+    .footer-copyright-bar {
+        text-align: center;
+        padding-top: 20px;
+        border-top: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .copyright-text {
+        font-size: 0.55rem;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: rgba(200,210,240,0.2);
+    }
+
+    @media (max-width: 1000px) {
+        .footer-row {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 12px;
+            padding-left: 10%;
+        }
+        .footer-item {
+            white-space: normal;
+        }
+    }
+</style>
+
+<footer>
+    <div class="footer-row">
+        <div class="footer-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+            <span>〒617-0843 京都府長岡京市友岡１丁目２番１号</span>
+        </div>
+
+        <div class="footer-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.79 19.79 0 0 1 11.37 19 19.45 19.45 0 0 1 5 12.63 19.79 19.79 0 0 1 2.12 4.2 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+            <span><a href="tel:0759517391">075-951-7391</a> (代表)</span>
+        </div>
+
+        <div class="footer-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+            <a href="https://www3.jeed.go.jp/kyoto/poly/" target="_blank">www3.jeed.go.jp/kyoto/poly/</a>
+        </div>
+
+        <div class="footer-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="13" rx="2" ry="2"></rect><path d="M7 10h10M9 17l-1.5 3M15 17l1.5 3"></path><circle cx="9" cy="6" r="1"></circle><circle cx="15" cy="6" r="1"></circle></svg>
+            <span>阪急「長岡天神」駅 徒歩8分 / JR「長岡京」駅 徒歩15分</span>
+        </div>
+    </div>
+
+    <div class="footer-copyright-bar">
+        <p class="copyright-text">© 2026 TrendStudio — ict09.京都ポリテクセンター</p>
+    </div>
+</footer>
+
+<script>
+/* ── Aurora ── */
+(function(){
+    const cv = document.getElementById('aurora');
+    const cx = cv.getContext('2d');
+    const resize = () => { cv.width = innerWidth; cv.height = innerHeight; };
+    resize(); addEventListener('resize', resize);
+
+    const orbs = [
+        { x:.18, y:.35, r:.42, rgb:'123,143,255', vx:.00010, vy:.00007 },
+        { x:.72, y:.22, r:.32, rgb:'167,139,250', vx:-.00008, vy:.00010 },
+        { x:.55, y:.72, r:.36, rgb:'96,184,255',  vx:.00009, vy:-.00008 },
+        { x:.82, y:.60, r:.28, rgb:'192,132,252', vx:-.00010, vy:-.00006 },
+    ];
+
+    let last = 0;
+    function frame(ts) {
+        const dt = ts - last || 16; last = ts;
+        const W = cv.width, H = cv.height;
+        cx.clearRect(0, 0, W, H);
+        orbs.forEach(o => {
+            o.x += o.vx * dt; o.y += o.vy * dt;
+            if (o.x < .08 || o.x > .92) o.vx *= -1;
+            if (o.y < .08 || o.y > .92) o.vy *= -1;
+            const gx = o.x*W, gy = o.y*H, gr = Math.min(W,H)*o.r;
+            const g = cx.createRadialGradient(gx,gy,0,gx,gy,gr);
+            g.addColorStop(0,  `rgba(${o.rgb},.20)`);
+            g.addColorStop(.5, `rgba(${o.rgb},.07)`);
+            g.addColorStop(1,  `rgba(${o.rgb},0)`);
+            cx.fillStyle = g;
+            cx.fillRect(0,0,W,H);
+        });
+        requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+})();
+
+/* ── Carousel ── */
+(function(){
+    const el    = document.getElementById('carousel');
+    const cards = [...el.querySelectorAll('.cat-card')];
+    const dots  = [...document.getElementById('dots').querySelectorAll('.dot')];
+    let active  = 0;
+
+    function go(idx) {
+        active = idx;
+        cards.forEach((c,i) => c.classList.toggle('active', i===idx));
+        dots.forEach((d,i)  => d.classList.toggle('active', i===idx));
+    }
+
+    el.addEventListener('scroll', () => {
+        const mid = el.scrollLeft + el.clientWidth/2;
+        let best = 0, bd = Infinity;
+        cards.forEach((c,i) => {
+            const d = Math.abs(c.offsetLeft + c.offsetWidth/2 - mid);
+            if (d < bd) { bd=d; best=i; }
+        });
+        if (best !== active) go(best);
+    }, {passive:true});
+
+    const scrollTo = i => el.scrollTo({
+        left: cards[i].offsetLeft - (el.clientWidth-cards[i].offsetWidth)/2,
+        behavior:'smooth'
+    });
+
+    dots.forEach((d,i) => d.addEventListener('click', () => scrollTo(i)));
+
+    cards.forEach((c,i) => c.addEventListener('click', e => {
+        if (i !== active) { e.preventDefault(); scrollTo(i); }
+    }));
+
+    let drag=false, sx=0, ss=0, moved=false;
+    el.addEventListener('mousedown', e => { drag=true; moved=false; sx=e.pageX; ss=el.scrollLeft; el.classList.add('grabbing'); });
+    addEventListener('mousemove', e => { if(!drag) return; if(Math.abs(e.pageX-sx)>4) moved=true; el.scrollLeft=ss-(e.pageX-sx); });
+    addEventListener('mouseup', () => { drag=false; el.classList.remove('grabbing'); });
+    el.addEventListener('click', e => { if(moved){e.preventDefault();moved=false;} });
+
+    go(0);
+})();
+
+/* ── Clock ── */
+(function(){
+    const dateEl = document.getElementById('clock-date');
+    const hmEl   = document.getElementById('clock-hm');
+    const secEl  = document.getElementById('clock-sec');
+    const DAYS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+    function tick() {
+        const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Tokyo' }));
+        dateEl.textContent =
+            `${DAYS[now.getDay()]}  ${now.getDate()} ${MONTHS[now.getMonth()]}  ${now.getFullYear()}`;
+        const hh = String(now.getHours()).padStart(2,'0');
+        const mm = String(now.getMinutes()).padStart(2,'0');
+        const ss = String(now.getSeconds()).padStart(2,'0');
+        // Update only text nodes to avoid re-rendering the <span>
+        hmEl.firstChild.textContent = `${hh}:${mm}`;
+        secEl.textContent = ss;
+    }
+    tick();
+    setInterval(tick, 1000);
+})();
+</script>
+</body>
+</html>

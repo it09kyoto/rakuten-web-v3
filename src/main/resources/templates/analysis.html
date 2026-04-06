@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Trend Analysis - 楽天データ分析</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-blue: #4f46e5;
+            --deep-purple: #312e81;
+            --accent-purple: #818cf8;
+            --soft-bg: #f5f7ff;
+            --text-main: #1e293b;
+            --card-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Inter', 'Noto Sans JP', sans-serif;
+            background-color: var(--soft-bg);
+            color: var(--text-main);
+            margin: 0;
+            line-height: 1.6;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--deep-purple) 0%, var(--primary-blue) 100%);
+            color: white;
+            padding: 25px 0;
+            text-align: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            margin-bottom: 40px;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            text-decoration: none;
+            color: var(--primary-blue);
+            font-weight: 600;
+            margin-bottom: 25px;
+            transition: transform 0.2s;
+        }
+
+        .back-link:hover {
+            transform: translateX(-5px);
+        }
+
+        .product-card {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 35px;
+            box-shadow: var(--card-shadow);
+            border: 1px solid rgba(79, 70, 229, 0.1);
+        }
+
+        .product-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--deep-purple);
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--soft-bg);
+            padding-bottom: 10px;
+        }
+
+        .ai-box {
+            background-color: #eef2ff;
+            border-left: 5px solid var(--primary-blue);
+            padding: 20px;
+            border-radius: 0 12px 12px 0;
+            margin: 20px 0;
+        }
+
+        .ai-box h4 {
+            margin-top: 0;
+            color: var(--primary-blue);
+            font-size: 15px;
+            display: flex;
+            align-items: center;
+            letter-spacing: 0.5px;
+        }
+
+        .ai-box h4::before {
+            content: '⚡';
+            margin-right: 8px;
+        }
+
+        .review-list h5 {
+            color: #64748b;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 1.2px;
+            margin: 25px 0 15px 0;
+        }
+
+        .review-item {
+            background-color: #fcfcfd;
+            border: 1px solid #f1f5f9;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            font-size: 14px;
+            color: #475569;
+        }
+
+        footer {
+            text-align: center;
+            padding: 50px 0;
+            color: #94a3b8;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Rakuten Insight Dashboard</h1>
+</header>
+
+<div class="container">
+    <a href="/" class="back-link">← Back to Ranking</a>
+
+    <div th:each="product : ${products}" class="product-card">
+        <div class="product-title" th:text="${product.name}">Product Name</div>
+
+        <div class="ai-box">
+            <h4>AI MARKET INSIGHT</h4>
+            <div th:text="${product.aiPrediction}">Analysis content...</div>
+        </div>
+
+        <div class="review-list">
+            <h5>REAL USER REVIEWS</h5>
+            <div th:if="${#lists.isEmpty(product.reviews)}">
+                <p style="color: #94a3b8; font-style: italic;">No data available.</p>
+            </div>
+            <div th:each="review : ${product.reviews}" class="review-item">
+                <span th:text="${review}">Review text</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer>
+    &copy; 2026 AI Trend Analysis System | Data sourced from Rakuten Ichiba
+</footer>
+
+</body>
+</html>
