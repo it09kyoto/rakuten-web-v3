@@ -1,7 +1,7 @@
 package com.example;
 
 import jakarta.persistence.*;
-import java.util.ArrayList; // 必须导入这个，否则报错“找不到符号”
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -17,7 +17,8 @@ public class Product {
     @Column(length = 1000)
     private String aiPrediction;
 
-    // 只保留这一个 reviews 定义，并整合所有注解
+    private String genre; // ← 追加
+
     @ElementCollection(fetch = FetchType.EAGER)
     private List<String> reviews = new ArrayList<>();
 
@@ -36,4 +37,7 @@ public class Product {
 
     public String getAiPrediction() { return aiPrediction; }
     public void setAiPrediction(String aiPrediction) { this.aiPrediction = aiPrediction; }
+
+    public String getGenre() { return genre; } // ← 追加
+    public void setGenre(String genre) { this.genre = genre; } // ← 追加
 }

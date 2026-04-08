@@ -5,8 +5,10 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
-import java.io.File;
+
+import java.io.InputStream;
 import java.util.*;
 
 @Service
@@ -15,73 +17,96 @@ public class RakutenSpider {
     @Autowired
     private ProductRepository productRepository;
 
+    // 品类ID与对应的文件名映射
+    private static final Map<String, String> GENRE_FILE_MAP = Map.of(
+            "0",      "rakuten_overall.html",
+            "551167", "rakuten_electronics.html",
+            "100371", "rakuten_fashion.html",
+            "216129", "rakuten_beauty.html"
+    );
+
     public List<Map<String, String>> fetchTrendingData(String genre) {
         List<Map<String, String>> products = new ArrayList<>();
         try {
-            // 1. 清理数据库
-            productRepository.deleteAll();
+            // 1. 清理该品类的旧数据
+            productRepository.deleteByGenre(genre);
 
-            // 2. 读取排行榜镜像 (确保根目录下有 rakuten.html)
-            File rankFile = new File("rakuten.html");
-            if (!rankFile.exists()) {
-                System.err.println("❌ 错误：请确保项目根目录下存在 rakuten.html");
+            // 2. 定位资源文件
+            String fileName = GENRE_FILE_MAP.getOrDefault(genre, "rakuten_overall.html");
+            ClassPathResource mainResource = new ClassPathResource("static_data/" + fileName);
+
+            if (!mainResource.exists()) {
+                System.err.println("❌ [错误] 找不到文件: src/main/resources/static_data/" + fileName);
                 return products;
             }
 
-            Document doc = Jsoup.parse(rankFile, "UTF-8", "https://ranking.rakuten.co.jp/");
-            Elements items = doc.select(".rnkRanking_itemName a");
-            int limit = Math.min(items.size(), 5);
+            System.out.println("📂 [读取] 正在解析真实榜单: " + fileName + " (大小: " + mainResource.contentLength() + " bytes)");
 
-            for (int i = 0; i < limit; i++) {
-                Element itemAnchor = items.get(i);
-                String productName = itemAnchor.text();
+            try (InputStream is = mainResource.getInputStream()) {
+                // 使用 UTF-8 解析，baseUri 设为空
+                Document doc = Jsoup.parse(is, "UTF-8", "");
 
-                System.out.println("🔍 正在解析真实数据 (" + (i + 1) + "/5): " + productName);
+                // --- 强力选择器升级 ---
+                // 尝试抓取：乐天标准的 class、包含 itemName 的任何 class、或者包含商品链接的 a 标签
+                Elements items = doc.select(".rnkRanking_itemName a, [class*='itemName'] a, .itemName a, a[href*='item.rakuten.co.jp']");
 
-                List<String> reviews = new ArrayList<>();
-
-                // --- 核心逻辑：读取对应的详情页镜像 ---
-                // 请将详情页另存为 1.html, 2.html 等，放在项目根目录
-                File detailFile = new File((i + 1) + ".html");
-
-                if (detailFile.exists()) {
-                    Document docDetail = Jsoup.parse(detailFile, "UTF-8");
-
-                    // 乐天真实评价选择器：针对 PC 版详情页
-                    // 常见的类名包含 revRvwUserReviewSctn 或 review_item_text
-                    Elements rews = docDetail.select(".revRvwUserReviewSctn p, .review_item_text, .revRvwUserReviewSctn p");
-
-                    for (Element r : rews) {
-                        String text = r.text().trim();
-                        if (text.length() > 10 && reviews.size() < 3) {
-                            reviews.add(text);
-                        }
-                    }
-                    System.out.println("✅ 已从本地镜像提取 " + reviews.size() + " 条真实评价");
-                } else {
-                    System.err.println("⚠️ 未找到本地镜像 " + detailFile.getName() + "，将使用演示占位符");
-                    reviews.add("由于乐天详情页反爬严重，请手动下载详情页并命名为 " + (i+1) + ".html 放入项目根目录以提取真实数据。");
+                if (items.isEmpty()) {
+                    System.err.println("⚠️ [警告] 抓取不到商品！HTML 结构可能已变。");
+                    // 调试：打印前 300 个字符看看内容
+                    System.out.println("DEBUG HTML: " + doc.text().substring(0, Math.min(300, doc.text().length())));
                 }
 
-                // 3. 封装并持久化
-                Product product = new Product();
-                product.setName(productName);
-                product.setPrice("真实数据");
-                product.setReviews(reviews);
+                int limit = Math.min(items.size(), 5);
+                for (int i = 0; i < limit; i++) {
+                    Element itemAnchor = items.get(i);
+                    String productName = itemAnchor.text().trim();
 
-                // 模拟简单的 AI 分析建议
-                String advice = "该商品在乐天排行榜位居前列，评论显示用户对“" +
-                        (productName.contains("靴") ? "穿着舒适度" : "产品品质") +
-                        "”认可度极高。建议关注大促期间的库存水位。";
-                product.setAiPrediction(advice);
+                    // 过滤掉过短的无意义字符
+                    if (productName.length() < 2) continue;
 
-                productRepository.save(product);
-                System.out.println("💾 真实数据已同步至数据库。");
+                    int rank = i + 1;
+                    System.out.println("🔍 [解析成功] 第 " + rank + " 名: " + productName);
+
+                    List<String> reviews = new ArrayList<>();
+
+                    // 3. 处理详情页评价
+                    String detailPath = "static_data/detail/" + genre + "/" + rank + ".html";
+                    ClassPathResource detailResource = new ClassPathResource(detailPath);
+
+                    if (detailResource.exists()) {
+                        try (InputStream dis = detailResource.getInputStream()) {
+                            Document docDetail = Jsoup.parse(dis, "UTF-8", "");
+                            // 抓取乐天评价文本常用的选择器
+                            Elements rews = docDetail.select(".revRvwUserReviewSctn p, .review_item_text, [class*='reviewText']");
+                            for (Element r : rews) {
+                                String text = r.text().trim();
+                                if (text.length() > 5 && reviews.size() < 3) {
+                                    reviews.add(text);
+                                }
+                            }
+                        }
+                    }
+
+                    // 4. 保存到数据库
+                    Product product = new Product();
+                    product.setName(productName);
+                    product.setPrice("Ranking Price");
+                    product.setReviews(reviews.isEmpty() ? List.of("暂无详细评价") : reviews);
+                    product.setGenre(genre);
+                    product.setAiPrediction(buildAdvice(productName, genre));
+
+                    productRepository.save(product);
+                }
             }
+
         } catch (Exception e) {
-            System.err.println("❌ 发生解析错误: " + e.getMessage());
+            System.err.println("❌ [系统崩溃] 爬虫异常: " + e.getMessage());
             e.printStackTrace();
         }
         return products;
+    }
+
+    private String buildAdvice(String productName, String genre) {
+        return "【AI 建议】根据「" + productName + "」的市场反馈，该产品在当前品类中表现强劲，建议关注其价格波动。";
     }
 }
